@@ -1,0 +1,80 @@
+
+# cat /proc/mdstat
+
+# mdadm --stop  /dev/md127 --> if have md127 sync (auto-read-only)
+
+# mdadm --remove  /dev/md127 --> if have md127 sync (auto-read-only)
+
+# mdadm --readwrite /dev/md127 --> if have md127 sync (auto-read-only)
+
+# mdadm --create  /dev/md0 --level=5 --raid-devices=7 /dev/nvme0n1 /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1 /dev/nvme4n1 /dev/nvme5n1 /dev/nvme6n1
+
+# mdadm --examine /dev/md0  /dev/nvme0n1 /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1 /dev/nvme4n1 /dev/nvme5n1 /dev/nvme6n1
+
+# mdadm --readwrite /dev/md0
+
+# mdadm --examine --scan --verbose
+
+# mdadm --detail  /dev/md0
+
+# mdadm --detail  --brief  /dev/md0
+
+# mdadm --detail  --brief  /dev/md0 >> /etc/mdadm.conf
+
+# mdadm --examine --scan >> /etc/mdadm.conf
+
+# mdadm  --readwrite /dev/md0 --> Run this command after rebuild sync /dev/md0 was complete 100%
+
+# vi /etc/mdadm.conf  --> add Array disk without no process spare disk rebuild sync
+
+# mdadm --assemble --scan
+
+# reboot
+
+# fdisk /dev/nvme0n1 untill /dev/nvme6n1 --> delete partition if any block partition cause partition only on /dev/md0
+
+
+Second Plan With configure LVM Spool
+------------------------------------
+
+https://unix.stackexchange.com/questions/411286/linux-raid-disappears-after-reboot
+
+change each partition drive type with code from 8300 to fd00 ==> fd00 --> via commadn gdisk (this optional)
+
+# gdisk  /dev/nvme0n1, gdisk /dev/nvme1n1, gdisk /dev/nvme2n1, gdisk  /dev/nvme3n1, gdisk /dev/nvme4n1, gdisk /dev/nvme5n1, gdisk /devnvme6n1
+
+# mdadm --create /dev/md0 --level=5 --raid-devices=7 /dev/nvme0n1 /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1 /dev/nvme4n1 /dev/nvme5n1 /dev/nvme6n1
+
+# ls -l /dev/disk/by-uuid
+
+# mkfs.ext4 -F /dev/md0
+
+# mdadm --detail /dev/md0
+
+# cat /proc/mdstat
+
+
+==> UTIMACO PLAN EXECUTE
+
+# fdisk /dev/md0 --> add new partition with press (n) and change type Linux press (t) md0 to LVM code (8e) and save partition press (w)
+
+# pvcreate  /dev/md0p1
+# pvremove  /dev/md0p1
+
+# vgcreate  spoolA  /dev/md0p1
+# vgremove  spoolA
+
+# lvcreate  --name spool01 -l 100%FREE  spoolA
+# lvremove  /dev/spoolA/spool01 
+
+# ls /dev/mapper/spoolA-spool01
+
+# mkfs.ext4 /dev/spoolA/spool01  
+
+# fdisk -l
+
+===> Plan Test Mount LVM
+
+# mkdir -p /data
+
+# mount /dev/spoolA/spool01  /data
